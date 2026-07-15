@@ -237,13 +237,14 @@
       <summary>⚙️ إعداد مفتاح يوتيوب (خطوة لازمة قبل البحث)</summary>
       <div class="key-row">
         <input type="password" id="apiKey" placeholder="الصق مفتاح YouTube Data API v3 هنا">
-        <button class="btn-primary" id="saveKeyBtn">حفظ للجلسة دي</button>
+        <button class="btn-primary" id="saveKeyBtn">حفظ على الجهاز ده</button>
+        <button class="btn-ghost" id="forgetKeyBtn">نسيان المفتاح</button>
       </div>
       <div class="key-status" id="keyStatus">
         محتاج مفتاح مجاني من Google عشان البحث يشتغل. اعمل مشروع على
         <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener">Google Cloud Console</a>،
         فعّل "YouTube Data API v3"، وطلّع Credential من نوع API Key، والصقه هنا.
-        المفتاح بيتخزن في الذاكرة بتاعة المتصفح لجلسة الاستخدام دي بس ومش بيتبعت لأي حد غير يوتيوب.
+        المفتاح بيتحفظ في متصفح الجهاز ده بس (localStorage) ومش بيتبعت لأي حد غير يوتيوب. لو فتحت الموقع من جهاز أو متصفح تاني، هتحتاج تحطه هناك تاني.
       </div>
     </details>
   </div>
@@ -284,7 +285,11 @@
 <footer>الصوت بيفضل شغال طول ما التاب مفتوح — حتى لو انتقلت لتاب أو موقع تاني. لو قفلت المتصفح، هيوقف.</footer>
 
 <script>
-  let apiKey = "";
+  // ✅ لو عايز المفتاح يشتغل تلقائيًا على أي جهاز من غير ما تكتبه خالص،
+  // حط مفتاحك بين علامتي التنصيص هنا واحفظ الملف وارفعه:
+  const DEFAULT_API_KEY = "AIzaSyAnJobki-jLqTsbMct3cC7BMXD-Cwps7SU";
+
+  let apiKey = DEFAULT_API_KEY;
   let player = null;
   let playerReady = false;
   let looping = false;
@@ -320,10 +325,42 @@
       return;
     }
     apiKey = val;
-    els.keyStatus.textContent = "تمام، المفتاح محفوظ للجلسة دي. جرّب دلوقتي تبحث 🎬";
+    try{ localStorage.setItem('yt_audio_api_key', val); }catch(e){}
+    els.keyStatus.textContent = "تمام، المفتاح محفوظ على الجهاز ده، مش هيتطلب منك تاني. جرّب دلوقتي تبحث 🎬";
     els.keyStatus.className = "key-status ok";
     els.keyDetails.removeAttribute('open');
   });
+
+  els.forgetKeyBtn = document.getElementById('forgetKeyBtn');
+  els.forgetKeyBtn.addEventListener('click', () => {
+    apiKey = "";
+    els.apiKeyInput.value = "";
+    try{ localStorage.removeItem('yt_audio_api_key'); }catch(e){}
+    els.keyStatus.textContent = "تم مسح المفتاح المحفوظ من الجهاز ده.";
+    els.keyStatus.className = "key-status";
+  });
+
+  (function loadSavedKey(){
+    try{
+      const saved = localStorage.getItem('yt_audio_api_key');
+      if(saved){
+        apiKey = saved;
+        els.apiKeyInput.value = saved;
+        els.keyStatus.textContent = "تم استرجاع المفتاح المحفوظ على الجهاز ده تلقائيًا. جاهز تبحث.";
+        els.keyStatus.className = "key-status ok";
+      } else if(DEFAULT_API_KEY){
+        apiKey = DEFAULT_API_KEY;
+        els.apiKeyInput.value = DEFAULT_API_KEY;
+        els.keyStatus.textContent = "المفتاح شغال تلقائيًا من إعدادات الملف. جاهز تبحث من غير أي خطوة إضافية.";
+        els.keyStatus.className = "key-status ok";
+      }
+    }catch(e){
+      if(DEFAULT_API_KEY){
+        apiKey = DEFAULT_API_KEY;
+        els.apiKeyInput.value = DEFAULT_API_KEY;
+      }
+    }
+  })();
 
   els.searchBtn.addEventListener('click', doSearch);
   els.searchInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doSearch(); });
